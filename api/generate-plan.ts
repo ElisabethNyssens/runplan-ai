@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import * as z from "zod";
-import { PlanSchema, type Profile, ProfileSchema } from "../src/runplan/schemas";
+import { PlanSchema, type Profile, ProfileSchema } from "../src/runplan/schemas.js";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
