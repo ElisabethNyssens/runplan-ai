@@ -175,6 +175,7 @@ export function PlanForm({ api }: { api: RunPlanApi }) {
         >
           {api.submitting ? "Génération..." : "Générer mon plan"}
         </button>
+        {api.error && <p className="text-sm text-[oklch(55%_0.18_25)]">{api.error}</p>}
       </div>
     </div>
   );

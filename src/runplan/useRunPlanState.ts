@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { generatePlan } from "./api";
 import {
-  MOCK_WEEKS,
-  generatePlan,
   type DateMode,
   type Niveau,
   type Objectif,
@@ -57,13 +56,34 @@ function loadPersistedState(): Partial<PersistedState> {
 
 function persistState(state: RunPlanState) {
   const {
-    screen, objectif, niveau, seances, dateMode, semaines,
-    dateValue, contraintes, viewMode, completed, hasPlan,
+    screen,
+    objectif,
+    niveau,
+    seances,
+    dateMode,
+    semaines,
+    dateValue,
+    contraintes,
+    viewMode,
+    completed,
+    hasPlan,
   } = state;
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ screen, objectif, niveau, seances, dateMode, semaines, dateValue, contraintes, viewMode, completed, hasPlan }),
+      JSON.stringify({
+        screen,
+        objectif,
+        niveau,
+        seances,
+        dateMode,
+        semaines,
+        dateValue,
+        contraintes,
+        viewMode,
+        completed,
+        hasPlan,
+      }),
     );
   } catch {
     // localStorage unavailable (private mode, quota) — state just won't survive a reload.
@@ -76,6 +96,7 @@ export function useRunPlanState() {
     ...loadPersistedState(),
   }));
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     persistState(state);
@@ -84,9 +105,20 @@ export function useRunPlanState() {
   async function handleSubmit() {
     const { objectif, niveau, seances, dateMode, semaines, dateValue, contraintes } = state;
     setSubmitting(true);
+    setError(null);
     try {
-      const plan = await generatePlan({ objectif, niveau, seances, dateMode, semaines, dateValue, contraintes });
+      const plan = await generatePlan({
+        objectif,
+        niveau,
+        seances,
+        dateMode,
+        semaines,
+        dateValue,
+        contraintes,
+      });
       setState((s) => ({ ...s, screen: "plan", plan, hasPlan: true }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
@@ -95,11 +127,13 @@ export function useRunPlanState() {
   function toggleSession(id: string) {
     setState((s) => ({
       ...s,
-      completed: s.completed.includes(id) ? s.completed.filter((x) => x !== id) : [...s.completed, id],
+      completed: s.completed.includes(id)
+        ? s.completed.filter((x) => x !== id)
+        : [...s.completed, id],
     }));
   }
 
-  const weeks: Week[] = state.plan?.weeks ?? MOCK_WEEKS;
+  const weeks: Week[] = state.plan?.weeks ?? [];
   const completed = useMemo(() => new Set(state.completed), [state.completed]);
 
   return {
@@ -132,6 +166,8 @@ export function useRunPlanState() {
     toggleSession,
     viewMode: state.viewMode,
     setViewMode: (viewMode: ViewMode) => setState((s) => ({ ...s, viewMode })),
+
+    error,
   };
 }
 
