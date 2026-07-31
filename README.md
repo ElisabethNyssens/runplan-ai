@@ -1,75 +1,55 @@
-# React + TypeScript + Vite
+# RunPlan AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Generates a personalized running training plan from a short intake form
+(objective, level, sessions per week, timeline, constraints), using the Gemini
+API. Tracks progress with a list or calendar view.
 
-Currently, two official plugins are available:
+**Demo:** https://runplan-6yjrxmkh1-elisabethnyssens-projects.vercel.app/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- [Vite](https://vite.dev/) + [React 19](https://react.dev/) + TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com/) (arbitrary values to match the design)
+- [Zod](https://zod.dev/) to validate the API's input/output
+- [Google Gemini](https://ai.google.dev/) (`@google/genai`) for plan generation
+- [Vercel](https://vercel.com/) serverless function (`api/generate-plan.ts`)
+- [Supabase](https://supabase.com/) — schema ready (`supabase/migrations/`), wiring in progress
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## MVP scope
 
-## Expanding the ESLint configuration
+- [x] Profile intake form (objective, level, sessions/week, timeline, constraints)
+- [x] AI-generated training plan (Gemini, structured JSON validated with Zod)
+- [x] List view and calendar view
+- [x] Session completion tracking with a progress bar
+- [ ] Persistence via Supabase (anonymous auth + `profiles`/`plans`/`sessions`
+      tables)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Local development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Required environment variables (`.env` / `.env.local`, not committed):
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `GEMINI_API_KEY` — Gemini API key, used by `api/generate-plan.ts`
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — for Supabase persistence (coming soon)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The form alone (without the generation API) runs with:
 
+```bash
+npm run dev
 ```
+
+To test the full flow (frontend + the `/api/generate-plan` function):
+
+```bash
+vercel dev
+```
+
+## Scripts
+
+- `npm run dev` — Vite dev server
+- `npm run build` — typecheck (`tsc -b`) + production build
+- `npm run lint` — ESLint
+- `npm run preview` — preview the production build
