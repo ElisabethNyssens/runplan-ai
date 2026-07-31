@@ -1,7 +1,15 @@
 import { OBJECTIF_OPTIONS, NIVEAU_OPTIONS } from "./types";
 import type { RunPlanApi } from "./useRunPlanState";
 
-function Section({ index, title, children }: { index: string; title: string; children: React.ReactNode }) {
+function Section({
+  index,
+  title,
+  children,
+}: {
+  index: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section>
       <div className="mb-3 font-['Space_Grotesk'] text-[13px] font-bold tracking-[0.06em] text-[oklch(45%_0.02_50)] uppercase">
@@ -12,7 +20,15 @@ function Section({ index, title, children }: { index: string; title: string; chi
   );
 }
 
-function Pill({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+function Pill({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -49,7 +65,9 @@ function Stepper({
       >
         −
       </button>
-      <div className="min-w-[38px] text-center font-['Space_Grotesk'] text-[26px] font-bold">{value}</div>
+      <div className="min-w-[38px] text-center font-['Space_Grotesk'] text-[26px] font-bold">
+        {value}
+      </div>
       <button
         type="button"
         onClick={onInc}
@@ -69,7 +87,9 @@ export function PlanForm({ api }: { api: RunPlanApi }) {
         <h1 className="mb-2.5 font-['Space_Grotesk'] text-[38px] leading-[1.12] font-bold tracking-[-0.01em]">
           Ton plan de course, généré pour toi.
         </h1>
-        <p className="text-base text-[oklch(45%_0.02_50)]">Réponds à quelques questions, on s'occupe du reste.</p>
+        <p className="text-base text-[oklch(45%_0.02_50)]">
+          Réponds à quelques questions, on s'occupe du reste.
+        </p>
       </header>
 
       <div className="flex flex-col gap-8">
@@ -100,7 +120,12 @@ export function PlanForm({ api }: { api: RunPlanApi }) {
         </Section>
 
         <Section index="03" title="Séances par semaine">
-          <Stepper value={api.seances} unit="séances / semaine" onInc={api.incSeances} onDec={api.decSeances} />
+          <Stepper
+            value={api.seances}
+            unit="séances / semaine"
+            onInc={api.incSeances}
+            onDec={api.decSeances}
+          />
         </Section>
 
         <Section index="04" title="Échéance">
@@ -110,10 +135,19 @@ export function PlanForm({ api }: { api: RunPlanApi }) {
               selected={api.dateMode === "semaines"}
               onClick={() => api.setDateMode("semaines")}
             />
-            <Pill label="Date précise" selected={api.dateMode === "date"} onClick={() => api.setDateMode("date")} />
+            <Pill
+              label="Date précise"
+              selected={api.dateMode === "date"}
+              onClick={() => api.setDateMode("date")}
+            />
           </div>
           {api.dateMode === "semaines" ? (
-            <Stepper value={api.semaines} unit="semaines" onInc={api.incSemaines} onDec={api.decSemaines} />
+            <Stepper
+              value={api.semaines}
+              unit="semaines"
+              onInc={api.incSemaines}
+              onDec={api.decSemaines}
+            />
           ) : (
             <input
               type="date"
