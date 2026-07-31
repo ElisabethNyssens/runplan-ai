@@ -4,7 +4,7 @@ Generates a personalized running training plan from a short intake form
 (objective, level, sessions per week, timeline, constraints), using the Gemini
 API. Tracks progress with a list or calendar view.
 
-**Demo:** https://runplan-6yjrxmkh1-elisabethnyssens-projects.vercel.app/
+**Demo:** https://runplan-ai-wheat.vercel.app/
 
 ## Stack
 
