@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 import { generatePlan } from "./api";
 import {
   type DateMode,
@@ -6,11 +7,55 @@ import {
   type Objectif,
   type Plan,
   type Screen,
+  type SessionType,
   type ViewMode,
   type Week,
 } from "./types";
 
-const STORAGE_KEY = "runplan_ai_state_v1";
+const OBJECTIF_TO_DB: Record<Objectif, string> = {
+  "5km": "5k",
+  "10km": "10k",
+  semi: "half_marathon",
+  marathon: "marathon",
+  reprise: "return_to_running",
+};
+
+const NIVEAU_TO_DB: Record<Niveau, string> = {
+  debutant: "beginner",
+  intermediaire: "intermediate",
+  confirme: "advanced",
+};
+
+const SESSIONTYPE_TO_DB: Record<SessionType, string> = {
+  footing: "easy_run",
+  fractionne: "intervals",
+  longue: "long_run",
+  recup: "recovery",
+  repos: "rest",
+};
+
+const DB_TO_OBJECTIF = Object.fromEntries(
+  Object.entries(OBJECTIF_TO_DB).map(([front, db]) => [db, front]),
+) as Record<string, Objectif>;
+
+const DB_TO_NIVEAU = Object.fromEntries(
+  Object.entries(NIVEAU_TO_DB).map(([front, db]) => [db, front]),
+) as Record<string, Niveau>;
+
+const DB_TO_SESSIONTYPE = Object.fromEntries(
+  Object.entries(SESSIONTYPE_TO_DB).map(([front, db]) => [db, front]),
+) as Record<string, SessionType>;
+
+interface SessionRow {
+  id: string;
+  week_number: number;
+  day: number;
+  type: string;
+  title: string;
+  meta: string;
+  description: string;
+  completed: boolean;
+}
 
 interface PersistedState {
   screen: Screen;
@@ -45,68 +90,107 @@ const initialState: RunPlanState = {
   hasPlan: false,
 };
 
-function loadPersistedState(): Partial<PersistedState> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function persistState(state: RunPlanState) {
-  const {
-    screen,
-    objectif,
-    niveau,
-    seances,
-    dateMode,
-    semaines,
-    dateValue,
-    contraintes,
-    viewMode,
-    completed,
-    hasPlan,
-  } = state;
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        screen,
-        objectif,
-        niveau,
-        seances,
-        dateMode,
-        semaines,
-        dateValue,
-        contraintes,
-        viewMode,
-        completed,
-        hasPlan,
-      }),
-    );
-  } catch {
-    // localStorage unavailable (private mode, quota) — state just won't survive a reload.
-  }
-}
-
 export function useRunPlanState() {
-  const [state, setState] = useState<RunPlanState>(() => ({
-    ...initialState,
-    ...loadPersistedState(),
-  }));
+  const [state, setState] = useState<RunPlanState>(initialState);
+  const [userId, setUserId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    persistState(state);
-  }, [state]);
+    async function init() {
+      const { data } = await supabase.auth.getSession();
+      let session = data.session;
+
+      if (!session) {
+        const { data: signInData } = await supabase.auth.signInAnonymously();
+        session = signInData.session;
+      }
+      if (!session) return;
+
+      setUserId(session.user.id);
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profileData) {
+        setState((s) => ({
+          ...s,
+          objectif: DB_TO_OBJECTIF[profileData.objective],
+          niveau: DB_TO_NIVEAU[profileData.level],
+          seances: profileData.sessions_per_week,
+          dateMode: profileData.date_mode === "weeks" ? "semaines" : "date",
+          semaines: profileData.weeks ?? s.semaines,
+          dateValue: profileData.target_date ?? "",
+          contraintes: profileData.constraints ?? "",
+        }));
+      }
+
+      const { data: planData } = await supabase
+        .from("plans")
+        .select("*, sessions(*)")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (planData) {
+        const sessionRows = planData.sessions as SessionRow[];
+
+        const weeksByNumber = new Map<number, Week>();
+        for (const row of sessionRows) {
+          if (!weeksByNumber.has(row.week_number)) {
+            weeksByNumber.set(row.week_number, { number: row.week_number, sessions: [] });
+          }
+          weeksByNumber.get(row.week_number)!.sessions.push({
+            id: row.id,
+            day: row.day,
+            type: DB_TO_SESSIONTYPE[row.type],
+            title: row.title,
+            meta: row.meta,
+            description: row.description,
+          });
+        }
+        const weeks = [...weeksByNumber.values()].sort((a, b) => a.number - b.number);
+        const completedIds = sessionRows.filter((row) => row.completed).map((row) => row.id);
+
+        setState((s) => ({
+          ...s,
+          plan: { weeks },
+          hasPlan: true,
+          completed: completedIds,
+        }));
+      }
+    }
+
+    init();
+  }, []);
 
   async function handleSubmit() {
     const { objectif, niveau, seances, dateMode, semaines, dateValue, contraintes } = state;
     setSubmitting(true);
     setError(null);
     try {
+      if (!userId) throw new Error("No authenticated user.");
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: userId,
+          objective: OBJECTIF_TO_DB[objectif],
+          level: NIVEAU_TO_DB[niveau],
+          sessions_per_week: seances,
+          date_mode: dateMode === "semaines" ? "weeks" : "date",
+          weeks: dateMode === "semaines" ? semaines : null,
+          target_date: dateMode === "date" && dateValue ? dateValue : null,
+          constraints: contraintes,
+        })
+        .select();
+      if (profileError) throw profileError;
+      console.log("Profile upserted:", profileData);
+
       const plan = await generatePlan({
         objectif,
         niveau,
@@ -116,6 +200,29 @@ export function useRunPlanState() {
         dateValue,
         contraintes,
       });
+
+      const { data: newPlan, error: planError } = await supabase
+        .from("plans")
+        .insert({ user_id: userId })
+        .select()
+        .single();
+      if (planError) throw planError;
+
+      const sessionRows = plan.weeks.flatMap((week) =>
+        week.sessions.map((session) => ({
+          plan_id: newPlan.id,
+          week_number: week.number,
+          day: session.day,
+          type: SESSIONTYPE_TO_DB[session.type],
+          title: session.title,
+          meta: session.meta,
+          description: session.description,
+        })),
+      );
+
+      const { error: sessionsError } = await supabase.from("sessions").insert(sessionRows);
+      if (sessionsError) throw sessionsError;
+
       setState((s) => ({ ...s, screen: "plan", plan, hasPlan: true }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
