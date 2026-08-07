@@ -66,7 +66,6 @@ interface PersistedState {
   semaines: number;
   dateValue: string;
   contraintes: string;
-  viewMode: ViewMode;
   completed: string[];
   hasPlan: boolean;
 }
@@ -84,17 +83,37 @@ const initialState: RunPlanState = {
   semaines: 8,
   dateValue: "",
   contraintes: "",
-  viewMode: "liste",
   completed: [],
   plan: null,
   hasPlan: false,
 };
+
+const VIEW_MODE_STORAGE_KEY = "runplan_view_mode";
+
+function loadViewMode(): ViewMode {
+  try {
+    const raw = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    return raw === "liste" || raw === "calendrier" ? raw : "liste";
+  } catch {
+    return "liste";
+  }
+}
 
 export function useRunPlanState() {
   const [state, setState] = useState<RunPlanState>(initialState);
   const [userId, setUserId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewModeState] = useState<ViewMode>(loadViewMode);
+
+  function setViewMode(viewMode: ViewMode) {
+    setViewModeState(viewMode);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    } catch {
+      // localStorage unavailable (private mode, quota) — viewMode just won't survive a reload.
+    }
+  }
 
   useEffect(() => {
     async function init() {
@@ -271,8 +290,8 @@ export function useRunPlanState() {
     weeks,
     completed,
     toggleSession,
-    viewMode: state.viewMode,
-    setViewMode: (viewMode: ViewMode) => setState((s) => ({ ...s, viewMode })),
+    viewMode,
+    setViewMode,
 
     error,
   };
