@@ -25,6 +25,23 @@ API. Tracks progress with a list or calendar view.
 - [x] Persistence via Supabase (anonymous auth + `profiles`/`plans`/`sessions`
       tables)
 
+## Next steps
+
+- Add recent race results to the intake form, for a more accurate plan
+- Improve the Gemini prompt to include target paces, not just session type/duration
+- Better loading state during plan generation (hide the form, show a spinner/
+  progress indicator instead of just changing the button text)
+- Fix responsive issues (horizontal scroll on mobile)
+- Improve navigation — e.g. browsing previous plans (the schema already keeps
+  a history of `plans` per user, but there's no UI for it yet)
+- Edit an existing plan without fully regenerating it
+- Per-session notes / how-it-felt field
+- Loading state while fetching the profile/plan on mount
+- Error handling for the initial session/profile/plan fetch (only the submit
+  flow surfaces errors today)
+- Automated tests
+- Upgrade path from anonymous auth to a durable account
+
 ## Local development
 
 ```bash
@@ -34,7 +51,7 @@ npm install
 Required environment variables (`.env` / `.env.local`, not committed):
 
 - `GEMINI_API_KEY` — Gemini API key, used by `api/generate-plan.ts`
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — for Supabase persistence (coming soon)
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — for Supabase persistence
 
 The form alone (without the generation API) runs with:
 
