@@ -208,7 +208,6 @@ export function useRunPlanState() {
         })
         .select();
       if (profileError) throw profileError;
-      console.log("Profile upserted:", profileData);
 
       const plan = await generatePlan({
         objectif,
@@ -251,12 +250,20 @@ export function useRunPlanState() {
   }
 
   function toggleSession(id: string) {
+    const nowCompleted = !state.completed.includes(id);
+
     setState((s) => ({
       ...s,
-      completed: s.completed.includes(id)
-        ? s.completed.filter((x) => x !== id)
-        : [...s.completed, id],
+      completed: nowCompleted ? [...s.completed, id] : s.completed.filter((x) => x !== id),
     }));
+
+    supabase
+      .from("sessions")
+      .update({ completed: nowCompleted })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("Failed to update session completion:", error);
+      });
   }
 
   const weeks: Week[] = state.plan?.weeks ?? [];

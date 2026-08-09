@@ -13,7 +13,8 @@ API. Tracks progress with a list or calendar view.
 - [Zod](https://zod.dev/) to validate the API's input/output
 - [Google Gemini](https://ai.google.dev/) (`@google/genai`) for plan generation
 - [Vercel](https://vercel.com/) serverless function (`api/generate-plan.ts`)
-- [Supabase](https://supabase.com/) — schema ready (`supabase/migrations/`), wiring in progress
+- [Supabase](https://supabase.com/) — anonymous auth + `profiles`/`plans`/`sessions`
+  tables (`supabase/migrations/`)
 
 ## MVP scope
 
@@ -21,7 +22,7 @@ API. Tracks progress with a list or calendar view.
 - [x] AI-generated training plan (Gemini, structured JSON validated with Zod)
 - [x] List view and calendar view
 - [x] Session completion tracking with a progress bar
-- [ ] Persistence via Supabase (anonymous auth + `profiles`/`plans`/`sessions`
+- [x] Persistence via Supabase (anonymous auth + `profiles`/`plans`/`sessions`
       tables)
 
 ## Local development
